@@ -1,0 +1,518 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Caja reductora 2 etapas 11.11:1 — modelo 3D</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{height:100%;overflow:hidden;font-family:Inter,system-ui,sans-serif;font-size:13px;color:#1d2733;background:#f4f6f8}
+#app{display:grid;grid-template-rows:44px 1fr 34px;grid-template-columns:250px 1fr;height:100%}
+#top{grid-column:1/3;display:flex;align-items:center;gap:14px;padding:0 14px;background:#fff;border-bottom:1px solid #d5dbe2}
+#top .doc{font-weight:600;font-size:14px}
+#top .sub{color:#66717e}
+#top .sp{flex:1}
+.btn{border:1px solid #c9d1da;background:#fff;border-radius:4px;padding:5px 10px;font:inherit;color:#1d2733;cursor:pointer}
+.btn:hover{background:#eef2f6}
+.btn.on{background:#e3eefb;border-color:#5b8fd6;color:#14478f}
+#tree{background:#fff;border-right:1px solid #d5dbe2;overflow:auto;padding:8px 0}
+#tree h3{font-size:11px;font-weight:600;letter-spacing:.04em;text-transform:uppercase;color:#66717e;padding:6px 14px}
+.row{display:flex;align-items:center;gap:8px;padding:4px 14px;cursor:pointer;user-select:none}
+.row:hover{background:#f0f4f8}
+.row input{accent-color:#2f6fca}
+.row .n{flex:1}
+.row .q{color:#8a95a1;font-size:12px}
+.sw{width:10px;height:10px;border-radius:2px;border:1px solid rgba(0,0,0,.25)}
+.sub2{padding-left:30px;color:#4a5562}
+#view{position:relative;background:linear-gradient(#fbfcfd,#dde3ea)}
+#view canvas{display:block}
+#sim{position:absolute;top:12px;right:12px;width:250px;background:rgba(255,255,255,.96);border:1px solid #d5dbe2;border-radius:6px;padding:12px;display:flex;flex-direction:column;gap:10px;box-shadow:0 2px 8px rgba(20,30,45,.08)}
+#sim h4{font-size:12px;font-weight:600}
+#sim label{display:flex;justify-content:space-between;color:#4a5562;font-size:12px}
+#sim input[type=range]{width:100%;accent-color:#2f6fca}
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:6px}
+.read{background:#f3f6f9;border-radius:4px;padding:8px;font-size:12px;line-height:1.6}
+.read b{font-weight:600}
+#views{position:absolute;top:12px;left:12px;display:flex;gap:4px}
+#info{position:absolute;left:12px;bottom:12px;max-width:380px;background:rgba(255,255,255,.96);border:1px solid #d5dbe2;border-left:3px solid #f08a32;border-radius:4px;padding:10px 12px;display:none;line-height:1.5}
+#info .t{font-weight:600;margin-bottom:2px}
+#hint{position:absolute;right:12px;bottom:12px;color:#6a7581;font-size:11px;background:rgba(255,255,255,.7);padding:4px 8px;border-radius:4px}
+#tabs{grid-column:1/3;display:flex;align-items:stretch;background:#e9edf1;border-top:1px solid #d5dbe2;overflow-x:auto}
+.tab{padding:0 16px;display:flex;align-items:center;gap:6px;border-right:1px solid #d5dbe2;cursor:pointer;white-space:nowrap;color:#3c4754}
+.tab:hover{background:#f3f5f8}
+.tab.on{background:#fff;color:#14478f;font-weight:500;box-shadow:inset 0 2px 0 #2f6fca}
+.tab .ic{font-size:10px;font-weight:600;padding:1px 4px;border-radius:3px;background:#d9e2ec;color:#3c4754}
+.tab.on .ic{background:#2f6fca;color:#fff}
+#err{display:none;position:absolute;inset:0;align-items:center;justify-content:center;color:#a33;padding:30px;text-align:center}
+@media (max-width:760px){#app{grid-template-columns:1fr}#tree{display:none}#top,#tabs{grid-column:1}#sim{width:200px;padding:8px;gap:6px}#top .sub{display:none}}
+#watermark {
+  position: absolute;
+  bottom: 12px;
+  left: 50%;
+  transform: translateX(-50%);
+  color: rgba(40, 50, 60, 0.6);
+  font-size: 11px;
+  font-weight: 500;
+  pointer-events: none;
+  z-index: 10;
+}
+</style>
+</head>
+<body>
+<div id="watermark">Diseñado por Joaquin Marasco — UTN</div>
+<div id="app">
+  <div id="top">
+    <span class="doc">Caja reductora 11.11:1</span>
+    <span class="sub">2 etapas · m4 · 15/50 × 15/50 · ejes a 130 mm</span>
+    <span class="sp"></span>
+    <button class="btn" id="bFit">Encuadrar</button>
+  </div>
+  <div id="tree"><h3>Instancias</h3><div id="rows"></div></div>
+  <div id="view">
+    <div id="views">
+      <button class="btn" data-v="iso">Iso</button>
+      <button class="btn" data-v="front">Frente (A)</button>
+      <button class="btn" data-v="back">Trasera (B)</button>
+      <button class="btn" data-v="top">Superior</button>
+      <button class="btn" data-v="right">Lateral</button>
+    </div>
+    <div id="sim">
+      <h4>Simulación</h4>
+      <div class="grid2">
+        <button class="btn on" id="bPlay">Pausa</button>
+        <button class="btn" id="bCut">Vista de corte</button>
+        <button class="btn" id="bGhost">Carcasa transp.</button>
+        <button class="btn" id="bReset">Rearmar</button>
+      </div>
+      <div><label>Velocidad visual <span id="lSpd">0.5 rev/s</span></label><input type="range" id="rSpd" min="0.05" max="3" step="0.05" value="0.5"></div>
+      <div><label>Despiece <span id="lEx">0%</span></label><input type="range" id="rEx" min="0" max="1" step="0.01" value="0"></div>
+      <div><label>Entrada (rpm) <span id="lRpm">3600</span></label><input type="range" id="rRpm" min="500" max="4000" step="100" value="3600"></div>
+      <div class="read" id="out"></div>
+    </div>
+    <div id="info"><div class="t" id="iT"></div><div id="iD"></div></div>
+    <div id="hint">Arrastrar: orbitar · Der.: desplazar · Rueda: zoom · Clic: seleccionar</div>
+    <div id="err"></div>
+  </div>
+  <div id="tabs"></div>
+</div>
+<script src="https://cdn.jsdelivr.net/npm/three@0.128.0/build/three.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
+<script>
+function buildModel(THREE) {
+  const PI = Math.PI, TAU = 2 * PI, D2R = PI / 180;
+  const root = new THREE.Group();
+  root.position.x = -130;
+  const pickables = [];
+  const cats = {};
+  const explodables = [];
+  const edgeMat = new THREE.LineBasicMaterial({ color: 0x1f2630, transparent: true, opacity: 0.55 });
+
+  const M = (color, metal, rough) => new THREE.MeshStandardMaterial({ color, metalness: metal, roughness: rough, side: THREE.DoubleSide });
+  const mats = {
+    plate: M(0xc3cad3, 0.2, 0.5),
+    cover: M(0xa9b4c2, 0.2, 0.5),
+    pinion: M(0x7f8b98, 0.35, 0.4),
+    crown: M(0x95a1ad, 0.35, 0.4),
+    shaft: M(0xb9c0c8, 0.4, 0.35),
+    key: M(0x56616c, 0.3, 0.5),
+    ring: M(0x6c7682, 0.4, 0.35),
+    ball: M(0xd9dde2, 0.5, 0.25),
+    vaso: M(0xdde2e8, 0.15, 0.55),
+    seal: M(0x2b2b2b, 0.0, 0.9),
+    bolt: M(0x3a3f46, 0.35, 0.45),
+    nylon: M(0x2f5fa8, 0.0, 0.7),
+    brass: M(0xc49b45, 0.5, 0.35),
+    copper: M(0xb8733f, 0.5, 0.35)
+  };
+  const housingMats = [mats.plate, mats.cover];
+
+  function reg(mesh, cat, name, info, edges = true) {
+    mesh.userData = { name, info, cat };
+    if (edges) mesh.add(new THREE.LineSegments(new THREE.EdgesGeometry(mesh.geometry, 22), edgeMat));
+    (cats[cat] = cats[cat] || []).push(mesh);
+    pickables.push(mesh);
+    return mesh;
+  }
+  function explodable(obj, dx, dy, dz) {
+    obj.userData.base = obj.position.clone();
+    obj.userData.ex = new THREE.Vector3(dx, dy, dz);
+    explodables.push(obj);
+    return obj;
+  }
+  const extrude = (shape, depth, z0) => {
+    const g = new THREE.ExtrudeGeometry(shape, { depth, bevelEnabled: false, curveSegments: 40 });
+    g.translate(0, 0, z0);
+    return g;
+  };
+  const lathe = (pts, seg = 64, mirror = false) => {
+    const g = new THREE.LatheGeometry(pts.map(p => new THREE.Vector2(p[0], p[1])), seg);
+    g.rotateX(PI / 2);
+    if (mirror) g.scale(1, 1, -1);
+    return g;
+  };
+  const circle = (x, y, r) => new THREE.Path().absarc(x, y, r, 0, TAU, true);
+
+  function borePath(r, w, kd, angles) {
+    const a0 = Math.asin(w / 2 / r);
+    const sx = Math.sqrt(r * r - (w / 2) * (w / 2));
+    const pts = [];
+    const sorted = angles.slice().sort((a, b) => a - b);
+    sorted.forEach((phi, i) => {
+      const loc = [[sx, -w / 2], [kd, -w / 2], [kd, w / 2], [sx, w / 2]];
+      loc.forEach(([x, y]) => pts.push(new THREE.Vector2(x * Math.cos(phi) - y * Math.sin(phi), x * Math.sin(phi) + y * Math.cos(phi))));
+      const next = i + 1 < sorted.length ? sorted[i + 1] : sorted[0] + TAU;
+      const s = phi + a0, e = next - a0, n = Math.max(4, Math.ceil((e - s) / (6 * D2R)));
+      for (let k = 1; k < n; k++) { const a = s + (e - s) * k / n; pts.push(new THREE.Vector2(r * Math.cos(a), r * Math.sin(a))); }
+    });
+    return new THREE.Path(pts);
+  }
+
+  function gearShape(m, z) {
+    const a = 20 * D2R, rp = m * z / 2, rb = rp * Math.cos(a), ra = rp + m, rf = rp - 1.25 * m;
+    const inv = t => Math.tan(t) - t;
+    const psi = PI / (2 * z) + inv(a);
+    const th = r => (r <= rb ? psi : psi - inv(Math.acos(rb / r)));
+    const r0 = Math.max(rf, rb), N = 8, rs = [];
+    if (rf < rb) rs.push(rf);
+    for (let k = 0; k <= N; k++) rs.push(r0 + (ra - r0) * k / N);
+    const pol = (r, t) => new THREE.Vector2(r * Math.cos(t), r * Math.sin(t));
+    const pts = [];
+    for (let i = 0; i < z; i++) {
+      const c = i * TAU / z;
+      rs.forEach(r => pts.push(pol(r, c - th(r))));
+      pts.push(pol(ra, c));
+      rs.slice().reverse().forEach(r => pts.push(pol(r, c + th(r))));
+      const s = c + th(rf), e = c + TAU / z - th(rf);
+      for (let k = 1; k < 4; k++) pts.push(pol(rf, s + (e - s) * k / 4));
+    }
+    return new THREE.Shape(pts);
+  }
+
+  const beta = Math.asin(70 / 130), phi = PI / 2 + beta;
+  function contour(p, r1, r2, ears) {
+    p.moveTo(260, -r2);
+    p.absarc(260, 0, r2, -PI / 2, PI / 2, false);
+    p.lineTo(130, r2);
+    p.absarc(130, 0, r2, PI / 2, phi, false);
+    p.lineTo(r1 * Math.cos(phi), r1 * Math.sin(phi));
+    if (ears) {
+      const a1 = 165 * D2R, a2 = 195 * D2R, h = r1 * Math.sin(a1);
+      p.absarc(0, 0, r1, phi, a1, false);
+      p.lineTo(-95, h);
+      p.absarc(-95, 0, h, PI / 2, 3 * PI / 2, false);
+      p.lineTo(r1 * Math.cos(a2), r1 * Math.sin(a2));
+      p.absarc(0, 0, r1, a2, TAU - phi, false);
+    } else {
+      p.absarc(0, 0, r1, phi, TAU - phi, false);
+    }
+    p.lineTo(130 + r2 * Math.cos(TAU - phi), r2 * Math.sin(TAU - phi));
+    p.absarc(130, 0, r2, TAU - phi, 3 * PI / 2, false);
+    if (ears) {
+      [[140, 160, 180], [210, 230, 250]].forEach(([xa, xc, xb]) => {
+        p.lineTo(xa, -r2); p.lineTo(xa, -170);
+        p.absarc(xc, -170, 20, PI, TAU, false);
+        p.lineTo(xb, -r2);
+      });
+    }
+    p.lineTo(260, -r2);
+    return p;
+  }
+
+  const R_CAV1 = 44, R_CAV2 = 114, R_OUT1 = 72, R_OUT2 = 142, RB1 = 61, RB2 = 131;
+  const bolts = [];
+  [90, 60, 30, 0, -30, -60, -90].forEach(d => bolts.push([260 + RB2 * Math.cos(d * D2R), RB2 * Math.sin(d * D2R)]));
+  [195, 130].forEach(x => { bolts.push([x, RB2]); bolts.push([x, -RB2]); });
+  const pC2 = [130 + RB2 * Math.cos(phi), RB2 * Math.sin(phi)];
+  const pC1 = [RB1 * Math.cos(phi), RB1 * Math.sin(phi)];
+  [1, -1].forEach(s => {
+    bolts.push([pC2[0], s * pC2[1]]);
+    bolts.push([(pC2[0] + pC1[0]) / 2, s * (pC2[1] + pC1[1]) / 2]);
+    bolts.push([pC1[0], s * pC1[1]]);
+  });
+  bolts.push([-RB1, 0]);
+  const dowels = [[260 + RB2 * Math.cos(45 * D2R), RB2 * Math.sin(45 * D2R)], [RB1 * Math.cos(210 * D2R), RB1 * Math.sin(210 * D2R)]];
+  const SH = [0, 130, 260];
+
+  function coverShape() {
+    const s = contour(new THREE.Shape(), R_OUT1, R_OUT2, true);
+    SH.forEach(x => s.holes.push(circle(x, 0, 40)));
+    bolts.forEach(([x, y]) => s.holes.push(circle(x, y, 4.25)));
+    dowels.forEach(([x, y]) => s.holes.push(circle(x, y, 4)));
+    [[-95, 0], [160, -170], [230, -170]].forEach(([x, y]) => s.holes.push(circle(x, y, 5.25)));
+    return s;
+  }
+  function plateShape() {
+    const s = contour(new THREE.Shape(), R_OUT1, R_OUT2, false);
+    s.holes.push(contour(new THREE.Path(), R_CAV1, R_CAV2, false));
+    bolts.forEach(([x, y]) => s.holes.push(circle(x, y, 4.25)));
+    dowels.forEach(([x, y]) => s.holes.push(circle(x, y, 4)));
+    return s;
+  }
+
+  const covA = reg(new THREE.Mesh(extrude(coverShape(), 8, -44), mats.cover), 'tapaA', 'Tapa lateral A (entrada)',
+    'Aluminio 8 mm, corte 2D. 3 alojamientos Ø80 para vasos (mandrilar con las tapas apareadas), 18 agujeros M8, 2 espigas Ø8, 3 orejas de anclaje con agujero Ø10.5.');
+  root.add(explodable(covA, 0, 0, -95));
+  const covB = reg(new THREE.Mesh(extrude(coverShape(), 8, 36), mats.cover), 'tapaB', 'Tapa lateral B',
+    'Igual a la Tapa A (simétrica). Lleva el tapón magnético de vaciado y el tapón de nivel.');
+  root.add(explodable(covB, 0, 0, 95));
+
+  const plateGeo = extrude(plateShape(), 8, 0);
+  for (let i = 0; i < 9; i++) {
+    const p = new THREE.Mesh(plateGeo, mats.plate);
+    p.position.z = -36 + 8 * i;
+    reg(p, 'chapas', `Chapa espaciadora ${i + 1}/9`,
+      'Aluminio 8 mm ×9 = 72 mm interior. Calado de la cavidad: R44 en el Eje 1 y R114 en los Ejes 2 y 3 (holgura radial 10 mm), unidos por tangentes.');
+    root.add(explodable(p, 0, -240, (i - 4) * 10));
+  }
+
+  const shaftGroups = SH.map(x => { const g = new THREE.Group(); g.position.x = x; root.add(g); return g; });
+
+  function addPinion(group, z0, name) {
+    const s = gearShape(4, 15);
+    s.holes.push(borePath(12.5, 8, 12.5 + 3.3, [PI / 2]));
+    const m = reg(new THREE.Mesh(extrude(s, 30, z0), mats.pinion), 'piniones', name,
+      'm = 4, z = 15, α = 20°. Dp 60 · De 68 · Df 50 · b = 30 mm. Agujero Ø25 con chavetero 8×7.');
+    group.add(explodable(m, 0, 0, z0 < 0 ? -30 : 30));
+  }
+  function addCrown(group, z0, name, boreR, keyAngles, keyW) {
+    const parts = new THREE.Group();
+    const rim = gearShape(4, 50);
+    rim.holes.push(circle(0, 0, 85));
+    const zc = z0 + 15;
+    const info = `m = 4, z = 50, α = 20°. Dp 200 · De 208 · Df 190 · b = 30 mm. Alma central 12 mm con 6 agujeros Ø35 (PCD 120). Agujero Ø${boreR * 2}` +
+      (keyAngles.length > 1 ? ' con doble chavetero a 90°.' : ' con chavetero 8×7.');
+    const rimM = reg(new THREE.Mesh(extrude(rim, 30, z0), mats.crown), 'coronas', name, info);
+    const web = new THREE.Shape().absarc(0, 0, 86, 0, TAU, false);
+    web.holes.push(circle(0, 0, 29.5));
+    for (let k = 0; k < 6; k++) web.holes.push(circle(60 * Math.cos(k * PI / 3 + PI / 6), 60 * Math.sin(k * PI / 3 + PI / 6), 17.5));
+    const webM = reg(new THREE.Mesh(extrude(web, 12, zc - 6), mats.crown), 'coronas', name, info);
+    const hub = new THREE.Shape().absarc(0, 0, 30, 0, TAU, false);
+    hub.holes.push(borePath(boreR, keyW, boreR + 3.3, keyAngles));
+    const hubM = reg(new THREE.Mesh(extrude(hub, 30, z0), mats.crown), 'coronas', name, info);
+    parts.add(rimM, webM, hubM);
+    parts.rotation.z = PI / 50;
+    group.add(explodable(parts, 0, 0, z0 < 0 ? -30 : 30));
+  }
+  addPinion(shaftGroups[0], -33, 'Piñón 1 (Etapa 1)');
+  addCrown(shaftGroups[1], -33, 'Corona 1 (Etapa 1)', 15, [PI / 2], 8);
+  addPinion(shaftGroups[1], 3, 'Piñón 2 (Etapa 2)');
+  addCrown(shaftGroups[2], 3, 'Corona 2 (Etapa 2)', 17.5, [PI / 2, PI], 10);
+
+  const shaftDefs = [
+    ['Eje 1 (entrada)', [[0, -125], [11.5, -125], [12.5, -124], [12.5, -3], [15, -3], [15, 1], [12.5, 1], [12.5, 52], [11.5, 53], [0, 53]],
+      'Ø25 h6 en asientos de rodamiento 6305. Punta de entrada hacia el CVT con chaveta 8×7. Collar Ø30 de apoyo del Piñón 1.'],
+    ['Eje 2 (intermedio)', [[0, -53], [11.5, -53], [12.5, -52], [12.5, -33.5], [15, -33.5], [15, -3], [18, -3], [18, 3], [12.5, 3], [12.5, 52], [11.5, 53], [0, 53]],
+      'Puntas Ø25 para 6305 (vasos ciegos). Escalón Ø30 para la Corona 1 y collar Ø36 entre etapas que hace de tope a la Corona 1 y al Piñón 2.'],
+    ['Eje 3 (salida)', [[0, -115], [14, -115], [15, -114], [15, -3], [20, -3], [20, 3], [17.5, 3], [17.5, 33], [15, 33], [15, 114], [14, 115], [0, 115]],
+      'Ø30 para rodamientos 6206 y retenes 30×62×7. Centro escalonado Ø35 con doble chavetero para la Corona 2. Salida por ambos lados.']
+  ];
+  shaftDefs.forEach(([name, prof, info], i) => {
+    shaftGroups[i].add(reg(new THREE.Mesh(lathe(prof, 48), mats.shaft), 'ejes', name, info));
+  });
+  function key(group, w, h, len, yc, zc, name) {
+    const k = reg(new THREE.Mesh(new THREE.BoxGeometry(w, h, len), mats.key), 'chavetas', name, `Chaveta paralela ${w}×${h} DIN 6885.`);
+    k.position.set(0, yc, zc); group.add(k);
+  }
+  key(shaftGroups[0], 8, 7, 24, 12, -108, 'Chaveta entrada Eje 1');
+  key(shaftGroups[2], 8, 7, 22, 14.5, -100, 'Chaveta salida A Eje 3');
+  key(shaftGroups[2], 8, 7, 22, 14.5, 100, 'Chaveta salida B Eje 3');
+
+  function bearing(x, side, d, D, B, name) {
+    const g = new THREE.Group(); g.position.x = x;
+    const t = (D - d) / 2, ri2 = d / 2 + 0.28 * t, ro1 = D / 2 - 0.28 * t, rc = (ri2 + ro1) / 2, rb = (ro1 - ri2) / 2 + 0.8;
+    const z0 = 36, z1 = 36 + B, mir = side < 0;
+    const info = `Rodamiento rígido de bolas ${name.split(' ')[0]} (${d}×${D}×${B} mm).`;
+    g.add(reg(new THREE.Mesh(lathe([[d / 2, z0], [ri2, z0], [ri2, z1], [d / 2, z1], [d / 2, z0]], 48, mir), mats.ring), 'rodamientos', name, info));
+    g.add(reg(new THREE.Mesh(lathe([[ro1, z0], [D / 2, z0], [D / 2, z1], [ro1, z1], [ro1, z0]], 48, mir), mats.ring), 'rodamientos', name, info));
+    const bg = new THREE.SphereGeometry(rb, 14, 10);
+    for (let k = 0; k < 9; k++) {
+      const b = new THREE.Mesh(bg, mats.ball);
+      b.position.set(rc * Math.cos(k * TAU / 9), rc * Math.sin(k * TAU / 9), side * (z0 + B / 2));
+      g.add(reg(b, 'rodamientos', name, info, false));
+    }
+    root.add(explodable(g, 0, 0, side * 120));
+  }
+  bearing(0, -1, 25, 62, 17, '6305 · Eje 1 lado A');
+  bearing(0, 1, 25, 62, 17, '6305 · Eje 1 lado B');
+  bearing(130, -1, 25, 62, 17, '6305 · Eje 2 lado A');
+  bearing(130, 1, 25, 62, 17, '6305 · Eje 2 lado B');
+  bearing(260, -1, 30, 62, 16, '6206 · Eje 3 lado A');
+  bearing(260, 1, 30, 62, 16, '6206 · Eje 3 lado B');
+
+  function vaso(x, side, type, name) {
+    const g = new THREE.Group(); g.position.x = x;
+    const outer = [[31, 36], [40, 36], [40, 44], [50, 44], [50, 50], [40, 50], [40, 64]];
+    let inner;
+    if (type === 'ciego') inner = [[0, 64], [0, 58], [24, 58], [24, 53], [31, 53], [31, 36]];
+    else if (type === 'p52') inner = [[26, 64], [26, 56], [24, 56], [24, 53], [31, 53], [31, 36]];
+    else inner = [[31, 64], [31, 36]];
+    const info = type === 'ciego' ? 'Vaso portarrodamiento ciego. Alojamiento Ø62 H7, espiga Ø80 en la tapa, brida Ø100 con 4 tornillos M6.'
+      : type === 'p52' ? 'Vaso pasante. Alojamiento Ø62 H7 para 6305 + asiento de retén 25×52×7 (H8). Brida Ø100 con 4 tornillos M6.'
+        : 'Vaso pasante. Alojamiento Ø62 H7 para 6206 + retén 30×62×7, separados por Seeger interior DIN 472 Ø62. Brida Ø100 con 4 M6.';
+    g.add(reg(new THREE.Mesh(lathe(outer.concat(inner), 64, side < 0), mats.vaso), 'vasos', name, info));
+    const sg = new THREE.CylinderGeometry(5, 5, 5, 20); sg.rotateX(PI / 2);
+    for (let k = 0; k < 4; k++) {
+      const s = new THREE.Mesh(sg, mats.bolt);
+      s.position.set(45 * Math.cos(PI / 4 + k * PI / 2), 45 * Math.sin(PI / 4 + k * PI / 2), side * 52.5);
+      g.add(reg(s, 'bulones', 'Tornillo M6 de vaso', 'Tornillo cabeza cilíndrica M6×16 ISO 4762, fija la brida del vaso a la tapa.'));
+    }
+    root.add(explodable(g, 0, 0, side * 160));
+    if (type !== 'ciego') {
+      const ri = type === 'p52' ? 12.5 : 15, ro = type === 'p52' ? 26 : 31;
+      const sn = type === 'p52' ? 'Retén 25×52×7 (entrada)' : 'Retén 30×62×7 (salida)';
+      const seal = reg(new THREE.Mesh(lathe([[ri, 56], [ro, 56], [ro, 63], [ri + 2, 63], [ri, 60], [ri, 56]], 48, side < 0), mats.seal), 'retenes', sn,
+        'Retén radial de labio, tipo A/BA. Asiento H8 en el vaso.');
+      seal.position.x = x;
+      root.add(explodable(seal, 0, 0, side * 200));
+    }
+  }
+  vaso(0, -1, 'p52', 'Vaso pasante · Eje 1 entrada');
+  vaso(0, 1, 'ciego', 'Vaso ciego · Eje 1 (opuesto CVT)');
+  vaso(130, -1, 'ciego', 'Vaso ciego · Eje 2 lado A');
+  vaso(130, 1, 'ciego', 'Vaso ciego · Eje 2 lado B');
+  vaso(260, -1, 'p62', 'Vaso pasante · Eje 3 salida A');
+  vaso(260, 1, 'p62', 'Vaso pasante · Eje 3 salida B');
+
+  const headG = new THREE.CylinderGeometry(7.5, 7.5, 5.3, 6); headG.rotateX(PI / 2); headG.translate(0, 0, -44 - 2.65);
+  const shankG = new THREE.CylinderGeometry(4, 4, 100, 16); shankG.rotateX(PI / 2); shankG.translate(0, 0, 6);
+  const nutG = new THREE.CylinderGeometry(7.5, 7.5, 8, 6); nutG.rotateX(PI / 2); nutG.translate(0, 0, 48);
+  const capG = new THREE.CylinderGeometry(6.2, 6.2, 2.5, 20); capG.rotateX(PI / 2); capG.translate(0, 0, 53.25);
+  bolts.forEach(([x, y], i) => {
+    const b = new THREE.Group(); b.position.set(x, y, 0);
+    b.add(reg(new THREE.Mesh(headG, mats.bolt), 'bulones', `Bulón M8×100 #${i + 1}`, 'Bulón pasante M8×100 ISO 4014 grado 8.8 (agarre 88 mm).'));
+    b.add(reg(new THREE.Mesh(shankG, mats.bolt), 'bulones', `Bulón M8×100 #${i + 1}`, 'Bulón pasante M8×100 ISO 4014 grado 8.8 (agarre 88 mm).', false));
+    root.add(explodable(b, 0, 0, -230));
+    const n = new THREE.Group(); n.position.set(x, y, 0);
+    n.add(reg(new THREE.Mesh(nutG, mats.bolt), 'bulones', 'Tuerca Nyloc M8', 'Tuerca autofrenante M8 DIN 985 (inserto de nylon).'));
+    n.add(reg(new THREE.Mesh(capG, mats.nylon), 'bulones', 'Tuerca Nyloc M8', 'Tuerca autofrenante M8 DIN 985 (inserto de nylon).'));
+    root.add(explodable(n, 0, 0, 230));
+  });
+  const dowG = new THREE.CylinderGeometry(4, 4, 90, 20); dowG.rotateX(PI / 2);
+  dowels.forEach(([x, y], i) => {
+    const d = reg(new THREE.Mesh(dowG, mats.shaft), 'espigas', `Espiga Ø8 #${i + 1}`, 'Espiga rectificada Ø8 m6 que atraviesa tapas y paquete de chapas, en esquinas opuestas.');
+    d.position.set(x, y, 0);
+    root.add(explodable(d, 0, 200, 0));
+  });
+
+  function plug(x, y, rHex, h, name, info, washMat, tipMat) {
+    const g = new THREE.Group(); g.position.set(x, y, 0);
+    const w = new THREE.CylinderGeometry(rHex + 1.5, rHex + 1.5, 1.5, 28); w.rotateX(PI / 2); w.translate(0, 0, 44.75);
+    const hx = new THREE.CylinderGeometry(rHex, rHex, h, 6); hx.rotateX(PI / 2); hx.translate(0, 0, 45.5 + h / 2);
+    g.add(reg(new THREE.Mesh(w, washMat), 'tapones', name, info));
+    g.add(reg(new THREE.Mesh(hx, tipMat), 'tapones', name, info));
+    root.add(explodable(g, 0, 0, 140));
+  }
+  plug(195, -102, 11, 7, 'Tapón magnético de vaciado', 'Tapón M14×1.5 con imán, en la parte baja de la Tapa B, a ras del fondo de la cavidad (y = −114).', mats.copper, mats.bolt);
+  plug(195, -40, 9.5, 6, 'Tapón de nivel', 'Tapón M12×1.5 a la altura de nivel de aceite, en la Tapa B.', mats.copper, mats.brass);
+
+  const vent = new THREE.Group(); vent.position.set(195, 0, 0);
+  const blk = new THREE.BoxGeometry(40, 14, 44); blk.translate(0, 142 + 7, 0);
+  const st = new THREE.CylinderGeometry(4, 4, 12, 16); st.translate(0, 156 + 6, 0);
+  const cap = new THREE.CylinderGeometry(9, 9, 6, 24); cap.translate(0, 168 + 3, 0);
+  const vInfo = 'Bloque de servicio atornillado sobre el paquete de chapas (con O-ring), con respiradero roscado 1/8" BSP. Evita roscar en el canto de chapas de 8 mm.';
+  vent.add(reg(new THREE.Mesh(blk, mats.vaso), 'tapones', 'Bloque de venteo', vInfo));
+  vent.add(reg(new THREE.Mesh(st, mats.brass), 'tapones', 'Respiradero', vInfo));
+  vent.add(reg(new THREE.Mesh(cap, mats.brass), 'tapones', 'Respiradero', vInfo));
+  root.add(explodable(vent, 0, 160, 0));
+
+  return { root, pickables, cats, shaftGroups, explodables, mats, housingMats };
+}
+
+
+</script>
+<script>
+(function(){
+const view=document.getElementById('view');
+if(!window.THREE||!THREE.OrbitControls){const e=document.getElementById('err');e.style.display='flex';e.textContent='No se pudo cargar three.js. Recargá la página.';return;}
+const M=buildModel(THREE);
+const scene=new THREE.Scene();
+scene.add(M.root);
+scene.add(new THREE.HemisphereLight(0xffffff,0x8d96a0,0.75));
+const d1=new THREE.DirectionalLight(0xffffff,0.75);d1.position.set(300,500,-400);scene.add(d1);
+const d2=new THREE.DirectionalLight(0xffffff,0.45);d2.position.set(-400,200,500);scene.add(d2);
+const d3=new THREE.DirectionalLight(0xffffff,0.2);d3.position.set(0,-400,0);scene.add(d3);
+const renderer=new THREE.WebGLRenderer({antialias:true,alpha:true});
+renderer.setPixelRatio(Math.min(window.devicePixelRatio,2));
+view.prepend(renderer.domElement);
+const camera=new THREE.PerspectiveCamera(32,1,5,8000);
+const controls=new THREE.OrbitControls(camera,renderer.domElement);
+controls.enableDamping=true;controls.dampingFactor=0.12;controls.screenSpacePanning=true;
+const target=new THREE.Vector3(0,-5,0);
+const VIEWS={iso:[560,360,-700],front:[0,0,-950],back:[0,0,950],top:[0,950,0.01],right:[950,0,0]};
+let anim=null;
+function setView(k,instant){const p=new THREE.Vector3(...VIEWS[k]);anim={from:camera.position.clone(),to:p,ft:controls.target.clone(),tt:target.clone(),t:instant?1:0};}
+setView('iso',true);camera.position.set(...VIEWS.iso);controls.target.copy(target);
+function resize(){const w=view.clientWidth,h=view.clientHeight;renderer.setSize(w,h);camera.aspect=w/h;camera.updateProjectionMatrix();}
+new ResizeObserver(resize).observe(view);resize();
+
+const CATS=[
+ ['tapaA','Tapa lateral A (entrada)',1,'cover'],['tapaB','Tapa lateral B',1,'cover'],['chapas','Chapas espaciadoras',9,'plate'],
+ ['ejes','Ejes 1 · 2 · 3',3,'shaft'],['piniones','Piñones z15',2,'pinion'],['coronas','Coronas z50',2,'crown'],['chavetas','Chavetas',3,'key'],
+ ['rodamientos','Rodamientos 6305 / 6206',6,'ring'],['vasos','Vasos portarrodamientos',6,'vaso'],['retenes','Retenes',3,'seal'],
+ ['bulones','Bulones M8 + Nyloc / M6',null,'bolt'],['espigas','Espigas Ø8',2,'shaft'],['tapones','Venteo · vaciado · nivel',3,'brass']];
+const vis={};const rowsEl=document.getElementById('rows');
+CATS.forEach(([k,label,q,mat])=>{vis[k]=true;const r=document.createElement('label');r.className='row';
+ const c='#'+M.mats[mat].color.getHexString();
+ r.innerHTML=`<input type="checkbox" checked data-k="${k}"><span class="sw" style="background:${c}"></span><span class="n">${label}</span><span class="q">${q?'×'+q:'18 + 24'}</span>`;
+ rowsEl.appendChild(r);});
+rowsEl.addEventListener('change',e=>{const k=e.target.dataset.k;if(k){setVis(k,e.target.checked);selectTab(null);}});
+function setVis(k,v){vis[k]=v;(M.cats[k]||[]).forEach(m=>m.visible=v);const cb=rowsEl.querySelector(`input[data-k="${k}"]`);if(cb)cb.checked=v;}
+
+const TABS=[
+ ['ASM','Caja reductora',null],['PS','Layout / carcasa',['tapaA','tapaB','chapas','bulones','espigas','tapones']],
+ ['PS','Engranajes',['piniones','coronas']],['PS','Ejes',['ejes','chavetas','piniones','coronas']],
+ ['PS','Vasos y rodamientos',['vasos','rodamientos','retenes']],['ASM','Etapa 1 + 2 (sin carcasa)',['ejes','piniones','coronas','chavetas','rodamientos']]];
+const tabsEl=document.getElementById('tabs');
+TABS.forEach(([ic,name,set],i)=>{const t=document.createElement('div');t.className='tab'+(i===0?' on':'');t.innerHTML=`<span class="ic">${ic}</span>${name}`;
+ t.onclick=()=>{CATS.forEach(([k])=>setVis(k,!set||set.includes(k)));selectTab(i);};tabsEl.appendChild(t);});
+function selectTab(i){[...tabsEl.children].forEach((t,j)=>t.classList.toggle('on',j===i));}
+
+let playing=true,cut=false,ghost=false,theta=0,exT=0,exC=0;
+const $=id=>document.getElementById(id);
+$('bPlay').onclick=()=>{playing=!playing;$('bPlay').textContent=playing?'Pausa':'Animar';$('bPlay').classList.toggle('on',playing);};
+const plane=new THREE.Plane(new THREE.Vector3(0,-1,0),0);
+$('bCut').onclick=()=>{cut=!cut;renderer.clippingPlanes=cut?[plane]:[];$('bCut').classList.toggle('on',cut);};
+$('bGhost').onclick=()=>{ghost=!ghost;$('bGhost').classList.toggle('on',ghost);M.housingMats.forEach(m=>{m.transparent=ghost;m.opacity=ghost?0.22:1;m.depthWrite=!ghost;m.needsUpdate=true;});};
+$('bReset').onclick=()=>{$('rEx').value=0;exT=0;$('lEx').textContent='0%';};
+$('rEx').oninput=e=>{const was=exT;exT=+e.target.value;$('lEx').textContent=Math.round(exT*100)+'%';if(was<0.05&&exT>=0.05){const tt=(anim?anim.tt:controls.target).clone();const d=(anim?anim.to:camera.position).clone().sub(tt);if(d.length()<1350){const t2=tt.clone().add(new THREE.Vector3(0,-70,0));anim={from:camera.position.clone(),to:t2.clone().add(d.setLength(1350)),ft:controls.target.clone(),tt:t2,t:0};}}};
+$('rSpd').oninput=e=>$('lSpd').textContent=(+e.target.value).toFixed(2)+' rev/s';
+const i1=50/15,iT=i1*i1;
+function out(){const n=+$('rRpm').value;$('lRpm').textContent=n;
+ $('out').innerHTML=`Eje 1 (entrada): <b>${n} rpm</b><br>Eje 2: <b>${(n/i1).toFixed(0)} rpm</b> (sentido inverso)<br>Eje 3 (salida): <b>${(n/iT).toFixed(1)} rpm</b><br>Relación total: <b>${iT.toFixed(2)} : 1</b>`;}
+$('rRpm').oninput=out;out();
+document.querySelectorAll('#views .btn').forEach(b=>b.onclick=()=>setView(b.dataset.v));
+$('bFit').onclick=()=>setView('iso');
+
+const ray=new THREE.Raycaster(),mouse=new THREE.Vector2();let sel=null,selMats=[];const selMat=new THREE.MeshStandardMaterial({color:0xf08a32,emissive:0x5a2a00,metalness:.2,roughness:.5,side:THREE.DoubleSide});
+let down=null;
+renderer.domElement.addEventListener('pointerdown',e=>down=[e.clientX,e.clientY]);
+renderer.domElement.addEventListener('pointerup',e=>{if(!down||Math.hypot(e.clientX-down[0],e.clientY-down[1])>4)return;
+ const r=renderer.domElement.getBoundingClientRect();mouse.set((e.clientX-r.left)/r.width*2-1,-(e.clientY-r.top)/r.height*2+1);
+ ray.setFromCamera(mouse,camera);
+ const hits=ray.intersectObjects(M.pickables.filter(m=>m.visible&&isShown(m)),false).filter(h=>!cut||h.point.y<=0.01);
+ clearSel();
+ if(hits.length){const name=hits[0].object.userData.name;sel=M.pickables.filter(m=>m.userData.name===name);
+  sel.forEach(m=>{selMats.push(m.material);m.material=selMat;});
+  $('iT').textContent=name;$('iD').textContent=hits[0].object.userData.info;$('info').style.display='block';}
+ else $('info').style.display='none';});
+function isShown(o){while(o){if(!o.visible)return false;o=o.parent;}return true;}
+function clearSel(){if(sel)sel.forEach((m,i)=>m.material=selMats[i]);sel=null;selMats=[];}
+
+let last=performance.now();
+function loop(now){requestAnimationFrame(loop);const dt=Math.min(.05,(now-last)/1000);last=now;
+ if(playing)theta+=dt*(+$('rSpd').value)*Math.PI*2;
+ M.shaftGroups[0].rotation.z=theta;M.shaftGroups[1].rotation.z=-theta/i1;M.shaftGroups[2].rotation.z=theta/iT;
+ exC+=(exT-exC)*Math.min(1,dt*8);
+ M.explodables.forEach(o=>o.position.copy(o.userData.base).addScaledVector(o.userData.ex,exC));
+ if(anim){anim.t=Math.min(1,anim.t+dt*2.2);const k=1-Math.pow(1-anim.t,3);camera.position.lerpVectors(anim.from,anim.to,k);controls.target.lerpVectors(anim.ft,anim.tt,k);if(anim.t>=1)anim=null;}
+ controls.update();renderer.render(scene,camera);}
+requestAnimationFrame(loop);
+})();
+</script>
+</body>
+</html>
+
+
+
